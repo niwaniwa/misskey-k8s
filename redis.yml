@@ -12,35 +12,18 @@ spec:
 
 ---
 
-kind: PersistentVolume
 apiVersion: v1
-metadata:
-  name: pv-misskey-redis
-  namespace: misskey
-spec:
-  storageClassName: misskey-redis
-  capacity:
-    storage: 1Gi
-  accessModes:
-  - ReadWriteOnce
-  nfs:
-    server: 192.168.10.41
-    path: /home/commojun/nfs/misskey/redis
-
----
-
 kind: PersistentVolumeClaim
-apiVersion: v1
 metadata:
-  name: pvc-misskey-redis
+  name: misskey-redis-pvc
   namespace: misskey
 spec:
-  storageClassName: misskey-redis
+  storageClassName: rook-ceph-block
   accessModes:
-  - ReadWriteOnce
+    - ReadWriteOnce
   resources:
     requests:
-      storage: 1Gi
+      storage: 20Gi
 
 ---
 
@@ -52,15 +35,6 @@ metadata:
   labels:
     app: redis
 spec:
-  affinity:
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-        - matchExpressions:
-          - key: kubernetes.io/hostname
-            operator: In
-            values:
-              - pi41
   restartPolicy: Always
   containers:
   - name: redis

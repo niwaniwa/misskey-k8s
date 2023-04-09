@@ -4,78 +4,27 @@ metadata:
   name: web
   namespace: misskey
 spec:
-  type: NodePort
+  type: ClusterIP
   selector:
     app: web
   ports:
   - name: http
     port: 3000
-    targetPort: 3000
-    nodePort: 30080
 
 ---
 
-kind: PersistentVolume
 apiVersion: v1
-metadata:
-  name: pv-misskey-config
-  namespace: misskey
-spec:
-  storageClassName: misskey-config
-  capacity:
-    storage: 5Mi
-  accessModes:
-  - ReadWriteOnce
-  nfs:
-    server: 192.168.10.41
-    path: /home/commojun/nfs/misskey/config
-
----
-
 kind: PersistentVolumeClaim
-apiVersion: v1
 metadata:
-  name: pvc-misskey-config
+  name: misskey-web-files-pvc
   namespace: misskey
 spec:
-  storageClassName: misskey-config
+  storageClassName: rook-ceph-block
   accessModes:
-  - ReadWriteOnce
+    - ReadWriteOnce
   resources:
     requests:
-      storage: 5Mi
-
----
-
-kind: PersistentVolume
-apiVersion: v1
-metadata:
-  name: pv-misskey-files
-  namespace: misskey
-spec:
-  storageClassName: misskey-files
-  capacity:
-    storage: 10Gi
-  accessModes:
-  - ReadWriteOnce
-  nfs:
-    server: 192.168.10.41
-    path: /home/commojun/nfs/misskey/files
-
----
-
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: pvc-misskey-files
-  namespace: misskey
-spec:
-  storageClassName: misskey-files
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
+      storage: 20Gi
 
 ---
 
@@ -100,32 +49,20 @@ spec:
     metadata:
       labels:
         app: web
-    spec:
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-                - key: kubernetes.io/hostname
-                  operator: In
-                  values:
-                    - pi31
-                    - pi32
-                    - pi33
       containers:
       - name: web
-        image: misskey/misskey:latest
+        image: ghcr.io/niri-la/misskey.niri.la:develop
         volumeMounts:
         - mountPath: /misskey/files
           name: misskey-files
-        - mountPath: /misskey/.config
-          name: misskey-config
+        - mountPath: /misskey/files/.config # ConfigMapのファイルをマウントするパス
+          name: misskey-default-conf-file # ConfigMapから作成したボリューム
         ports:
         - containerPort: 3000
         resources:
           limits:
             cpu: "2"
-        command: ["pnpm", "run", "start"]
+        # Podの準備が出来ているか確認用
         readinessProbe:
           httpGet:
             path: /
@@ -134,7 +71,34 @@ spec:
       volumes:
       - name: misskey-files
         persistentVolumeClaim:
-          claimName: pvc-misskey-files
-      - name: misskey-config
+          claimName: misskey-web-files-pvc
+      - name: misskey-default-conf-file
         persistentVolumeClaim:
-          claimName: pvc-misskey-config
+          claimName: misskey-web-files-pvc
+        configMap:
+          name: misskey-default-config
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: web-ingress
+  namespace: misskey
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: misskey.niri.la
+      http:
+        paths:
+          - pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 80
+            path: /
+    # tls:
+    #   - hosts:
+    #     - www.example.com
+    #     secretName: example-tls
