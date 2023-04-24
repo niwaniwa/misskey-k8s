@@ -1,83 +1,42 @@
-# k8s-misskey
-misskeyをおうちkubernetesで構築する
+# k8s-misskey-ni_rilana
 
-こちらの記事のdocker-composeを参考にする: https://qiita.com/nexryai/items/78e272d9bc36317d728a
+こちらの記事[「おうちKubernetesにmisskeyをデプロイする」](https://qiita.com/commojun/items/b9cb1ac7fb1b6c80d70a)を元に、Kubernetes+Rook/Ceph+CloudNativePGでMisskeyを構築する為のコンフィグリポジトリとなります。
+元のデータとしてこちらの記事で使用されているリポジトリをForkして更新しています。
+元データを閲覧したい方はFork元を確認してください。
 
-## 方針
 
-それぞれのコンテナは以下のノードに割り当てられるようにする
-- pi41: dbとredis
-- pi31,32,33: web
+## ファイル内容
 
-raspberry pi3 はメモリが1GBしかないので割当を工夫する
+```terminal
+$ tree
+.
+├── README.md
+├── namespace.yml
+├── nirila
+│   └── config
+│       └── config-misskey-default.yaml
+├── redis.yml
+├── stateful-web.yaml
+└── web-local.yaml
+```
 
-## 事前準備
-
-- [k0s-cluster](https://github.com/commojun/k0s-cluster)のようにしてk8sのクラスタが準備できていること
-- nfsが準備できていて、各ノードがネットワークストレージにアクセスできること
+- README.md このファイル
+- namespace.yaml ネームスペースを作成するためのファイル
+- nirila/config/config-misskey-default.yaml misskey用ConfigMap
+- redis.yml redis用yaml
+- stateful-web.yaml misskey用yaml
+- web-local.yaml ローカルテスト用yaml
 
 ## 構築方法
 
-`envfile.sample` をコピーして `envfile` を用意し、必要な環境変数を設定する
+以下の記事を参照してください。
 
-nfsにmisskeyディレクトリを用意する
-```
-pi41 $ cd /home/commojun/nfs
-pi41 $ mkdir misskey
-pi41 $ cd misskey
-pi41 $ mkdir redis
-pi41 $ mkdir db
-pi41 $ mkdir files
-pi41 $ mkdir config
+[MisskeyをDockerからおうちKubernetesに移行する](https://qiita.com/arila/items/3c453b7e802639eebdea#misskey%E6%9C%AC%E4%BD%93)
+
+もしNamespaceでエラーが発生した際は
+
+```termial
+$ kubectl apply -f namespace.yaml
 ```
 
-filesはコンテナ内の別ユーザが書き込みをするので権限を変更しておく
-```
-pi41 $ chmod 0777 files
-```
-
-設定をアップロードする
-```
-$ make config
-```
-
-namespaceを登録する
-```
-$ kubectl apply -f namespace.yml
-```
-
-secretを登録する
-```
-$ make secret
-```
-
-dbとredisのデプロイ
-```
-$ kubectl apply -f redis.yml
-$ kubectl apply -f db.yml
-```
-
-port-forwardしてそれぞれが立ち上がっているか確認
-```
-$ kubectl port-forward redis 6379:6379
-# 別のコンソール
-$ redis-client -h localhost
-```
-
-```
-$ kubectl port-forward db 5432:5432
-# 別のコンソール
-$ psql -h localhost -U misskey
-```
-
-webのデプロイ
-```
-$ kubectl apply -f web.yml
-```
-
-podの様子を確認
-```
-$ make pods
-```
-
-問題なく動作していた場合、 http://クラスタのいずれかのノードのIP:30080/ にアクセスすれば接続できる
+を実行してNamespaceを作成してください。
