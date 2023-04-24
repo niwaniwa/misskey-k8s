@@ -51,5 +51,4 @@ spec:
   volumes:
   - name: redis-volume
     persistentVolumeClaim:
-      claimName: pvc-misskey-redis
-
+      claimName: misskey-redis-pvc
