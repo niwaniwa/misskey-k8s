@@ -40,7 +40,7 @@ metadata:
   labels:
     deploy: web
 spec:
-  replicas: 2
+  replicas: 3
 #  strategy:
 #    type: RollingUpdate
 #    rollingUpdate:
@@ -56,8 +56,8 @@ spec:
     spec:
       containers:
       - name: web
-        image: ghcr.io/niri-la/misskey.niri.la:develop
-        imagePullPolicy: Always
+        image: ghcr.io/niri-la/misskey.niri.la:v13.13.2-kinel
+        imagePullPolicy: IfNotPresent
         volumeMounts:
         - mountPath: /misskey/files
           name: misskey-files
@@ -101,6 +101,10 @@ metadata:
   namespace: misskey
   annotations:
      nginx.ingress.kubernetes.io/proxy-body-size: 200m
+#     nginx.ingress.kubernetes.io/real-ip-header: "X-Real-IP"
+     nginx.ingress.kubernetes.io/real-ip-header: "CF-Connecting-IP"
+     nginx.ingress.kubernetes.io/set-forwarded-for: "true"
+     nginx.ingress.kubernetes.io/use-forwarded-headers: "true"
 #    kubernetes.io/ingress.class: "nginx"
 #    kubernetes.io/tls-acme: "true"
 #    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
