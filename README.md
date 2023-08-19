@@ -26,6 +26,7 @@ $ tree
 - redis.yml redis用yaml
 - stateful-web.yaml misskey用yaml
 - web-local.yaml ローカルテスト用yaml
+  - もし連合させたくない場合等は適時`nirila/config.config-misskey-default.yaml`を編集してください
 
 ## 構築方法
 
